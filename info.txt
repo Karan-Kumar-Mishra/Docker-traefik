@@ -1,1 +1,2 @@
 run the traefik container =docker run -d -p 8080:8080 -p 80:80  -v /var/run/docker.sock:/var/run/docker.sock traefik:v3
+run the container =docker run -it -p 80:80 -p 8888:8888 -e SSH_USERNAME="karan" -e SSH_PASSWORD="123456" wssh
