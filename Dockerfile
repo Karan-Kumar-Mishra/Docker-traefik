@@ -7,9 +7,14 @@ RUN apt-get update && \
         python3-venv \
         openssh-server \
         wget \
+        sudo \
+        iproute2 \ 
+        net-tools \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Rest of your Dockerfile remains the same...
 
 # Create virtual environment and install webssh
 RUN python3 -m venv /opt/webssh && \
@@ -20,17 +25,20 @@ RUN python3 -m venv /opt/webssh && \
 ENV SSH_USERNAME=admin
 ENV SSH_PASSWORD=password
 ENV ALLOW_SSH_PASSWORD_AUTH=true
+ENV CONTAINER_IP=127.0.0.1
 
-# Create user without setting password yet (will be done in entrypoint)
+# Create user and configure SSH
 RUN useradd -m $SSH_USERNAME && \
     mkdir -p /home/$SSH_USERNAME/.ssh && \
     chown -R $SSH_USERNAME:$SSH_USERNAME /home/$SSH_USERNAME && \
-    chmod 700 /home/$SSH_USERNAME/.ssh
+    chmod 700 /home/$SSH_USERNAME/.ssh && \
+    usermod -aG sudo $SSH_USERNAME && \
+    echo "$SSH_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Configure SSH
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
     echo "AllowUsers $SSH_USERNAME" >> /etc/ssh/sshd_config && \
-    echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config && \
     echo "UsePAM yes" >> /etc/ssh/sshd_config
 
 # Generate SSH host keys

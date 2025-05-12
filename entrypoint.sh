@@ -1,39 +1,38 @@
 #!/bin/bash
 set -e
 
-# Set the username and password from environment variables
+# Set credentials
 USERNAME=${SSH_USERNAME:-admin}
-PASSWORD=${SSH_PASSWORD:-$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
+PASSWORD=${SSH_PASSWORD:-password}
 
-# Create or modify the user
+# Ensure user exists and set password
 if id "$USERNAME" &>/dev/null; then
     echo "User $USERNAME exists, updating password..."
     echo "$USERNAME:$PASSWORD" | chpasswd
 else
     echo "Creating user $USERNAME..."
     useradd -m -s /bin/bash "$USERNAME" && \
-    echo "$USERNAME:$PASSWORD" | chpasswd
+    echo "$USERNAME:$PASSWORD" | chpasswd && \
+    usermod -aG sudo "$USERNAME"
 fi
 
-# Output credentials for debugging
-echo "SSH Credentials: $USERNAME:$PASSWORD"
-
-# Configure SSH password authentication
-if [ "$ALLOW_SSH_PASSWORD_AUTH" = "true" ]; then
-    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
-    echo "AllowUsers $USERNAME" >> /etc/ssh/sshd_config
-else
-    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
-fi
-
-# Ensure proper permissions
-mkdir -p /home/$USERNAME/.ssh
-chown -R $USERNAME:$USERNAME /home/$USERNAME
-chmod 700 /home/$USERNAME/.ssh
+# Configure SSH
+echo "Configuring SSH..."
+sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+echo "AllowUsers $USERNAME" >> /etc/ssh/sshd_config
 
 # Start SSH service
 echo "Starting SSH server..."
 service ssh restart
+
+# Verify SSH is running
+echo "SSH status:"
+service ssh status
+
+# Get container network info (using ifconfig instead of ip)
+echo "Network info:"
+ifconfig || echo "ifconfig not available"
+netstat -tulnp || echo "netstat not available"
 
 # Start WebSSH
 echo "Starting WebSSH..."
