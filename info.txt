@@ -1,4 +1,6 @@
 run the traefik container =
-docker run -d -p 8080:8080 -p 80:80  -v $PWD/traefik.yml:/etc/traefik/traefik.yml   -v /var/run/docker.sock:/var/run/docker.sock traefik:v3
+docker run -d -p 8080:8080 -p 80:80  -v $PWD/traefik.yml:/etc/traefik/traefik.yml -v /var/run/docker.sock:/var/run/docker.sock --network web --name traefik  traefik:v3
 //run on powershell
-run the container =docker run -it -p 80:80 -p 8888:8888 -e SSH_USERNAME="karan" -e SSH_PASSWORD="123456" wssh
+
+run the container =
+docker run -d  --name wssh  -e SSH_USERNAME="karan"  -e SSH_PASSWORD="123456" --network web  -l "traefik.enable=true" -l "traefik.http.routers.wssh.entrypoints=web" -l "traefik.http.services.wssh.loadbalancer.server.port=8888" -l "traefik.http.routers.wssh.middlewares=wssh-headers" -l "traefik.http.middlewares.wssh-headers.headers.customrequestheaders.X-Real-IP=remote_addr" -l "traefik.http.routers.wssh.middlewares=wssh-ws" -l "traefik.http.middlewares.wssh-ws.headers.customresponseheaders.Sec-WebSocket-Accept=*" wssh
